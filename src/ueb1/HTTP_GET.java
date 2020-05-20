@@ -17,7 +17,7 @@ public class HTTP_GET {
         String host = cutter(args[0]);
         try  {
             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-            Socket clientSocket = new Socket(args[0], 80);
+            Socket clientSocket = new Socket(host, 80);
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
@@ -41,6 +41,7 @@ public class HTTP_GET {
     }
     public static String cutter(String s){
         s = s.replaceAll("http://","");
+        s = s.replaceAll("https://","");
         return s;
     }
 }
