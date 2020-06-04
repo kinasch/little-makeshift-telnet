@@ -37,9 +37,9 @@ public class SERVER {
                 }
 
                 //liest eingabe und gibt an client antwort
-                //String serverA = stdIn.readLine();
-                //System.out.println("input: " + serverA);
-                //outding.println(serverA);
+                String serverA = stdIn.readLine();
+                System.out.println("input: " + serverA);
+                outding.println(serverA);
             }
         } catch (Exception e) {
             e.printStackTrace();
