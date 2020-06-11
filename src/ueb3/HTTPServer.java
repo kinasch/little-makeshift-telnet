@@ -1,6 +1,9 @@
 package ueb3;
 import java.net.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import static java.lang.System.out;
@@ -16,7 +19,18 @@ public class HTTPServer
 
       while (true) {
         // bearbeite die Verbindung asynchron
-        new HTTPConnection (ss.accept());
+        Runnable ro = new Runnable() {
+          @Override
+          public void run() {
+            try {
+              new HTTPConnection(ss.accept());
+            } catch (Exception e){
+              e.printStackTrace();
+            }
+          }
+        };
+        Thread t1 = new Thread(ro);
+        t1.start();
       }
     }
   }
@@ -35,8 +49,7 @@ extends Thread
     start (); // starte run() als neuen Thread
   }
 
-  public
-  void run ()
+  public void run ()
   {
     try {
       // hole die Input- und Output-Streams der Verbindung
@@ -48,8 +61,6 @@ extends Thread
         new BufferedReader (new InputStreamReader (httpin));
       // ein Text-Schreiber für die Antwort zum Schreiben der Header
       PrintWriter httpwriter = new PrintWriter (httpout);
-      //ein DatenoutputStream für die Files
-      DataOutputStream dout=new DataOutputStream(sock.getOutputStream());
 
       try {
         // lies die erste Zeile des Requests ("Request-Line")
@@ -58,16 +69,15 @@ extends Thread
         out.println("HTTP: " + request);
 
         // zerlege Request-Zeile in Worte
-        String[] tokens = request.split(" ");
-        String method = tokens[0];    // z.B. "GET", "/index.html", "HTTP/1.0"
+        StringTokenizer tokens = new StringTokenizer(request);
+        String method = tokens.nextToken();    // z.B. "GET", "/index.html", "HTTP/1.0"
 
         // bearbeite akzeptierte Request "Methods"
         if (method.equals("GET") || method.equals("POST")) {
-          System.out.println("testMEthod");
           // hole Request-URI
-          String URI = tokens[(1)];    // "/index.html"
+          String URI = tokens.nextToken();    // "/index.html"
           String URIparams = "";
-          String HTTP_version = tokens[(2)];    // "HTTP/1.0"
+          String HTTP_version = tokens.nextToken();    // "HTTP/1.0"
 
           //...URL verarbeiten
           // "/index.html"
@@ -105,43 +115,55 @@ extends Thread
           // verschiedene Ressourcentypen, hier:
           //	– Dateien (z.B. HTML-Seiten), wenn URI "." enthält
           //	– dynamische Server-Funktionen
-          if (URI.contains(".") || URI.indexOf('.')!=-1) {        // Ressourcen-Typ wird angefragt
-            System.out.println("hilfe");
+          if (URI.contains(".")) {        // Ressourcen-Typ wird angefragt
             // z.B. .html, .jpg
-            String URIsub = URI.substring(URI.indexOf('.'),URI.length());
+            String URIsub = URI.substring(URI.indexOf('.'),URI.length()).replaceAll("\\.","");
             // bestimme Dateityp anhand des Suffix des Dateinamens
+            Path path = Paths.get(URI);
+            if(Files.exists(path)) {
+
+              // lies die Datei
+              FileInputStream fileIn = new FileInputStream(URI);
 
 
-            // lies die Datei
+              // liefere Response zurück
+              httpwriter.println("HTTP/1.0 200 OK");
+              // setze Content-Type entsprechend des Dateityps
+              switch(URIsub){
+                case("html"): httpwriter.println("Content-Type: text/html"); break;
+                case("txt"): httpwriter.println("Content-Type: text/plan"); break;
+                case("jpg"): httpwriter.println("Content-Type: image/jpeg"); break;
+                case("jpeg"): httpwriter.println("Content-Type: image/jpeg"); break;
+                case("gif"): httpwriter.println("Content-Type: image/gif"); break;
+                default: httpwriter.println("Content-Type: unknown"); break;
+              }
+
+              // text/html
+              // text/plain
+              // image/jpeg
+              // image/gif
 
 
+              // Ende der Header-Zeilen
+              httpwriter.println("");
+              httpwriter.flush();
 
-            // liefere Response zurück
-            httpwriter.println("HTTP/1.0 200 OK");
-            // setze Content-Type entsprechend des Dateityps
-            httpwriter.println("Content-Type: "+URIsub);
-            // text/html
-            // text/plain
-            // image/jpeg
-            // image/gif
+              // schreibe Dateiinhalt in Response-Body
+              // (binär, daher nicht über den Writer,
+              // sondern den darunterliegenden OutputStream,
+              // deshalb vorher flush erforderlich)
 
+              //ein Fileleser
 
-            // Ende der Header-Zeilen
-            httpwriter.println("");
-            httpwriter.flush();
+              int r;
+              while ((r = fileIn.read()) != -1) {
+                httpout.write(r);
 
-            // schreibe Dateiinhalt in Response-Body
-            // (binär, daher nicht über den Writer,
-            // sondern den darunterliegenden OutputStream,
-            // deshalb vorher flush erforderlich)
-
-            //ein Fileleser
-            FileInputStream fileIn=new FileInputStream(URI);
-            int r;
-            while((r=fileIn.read())!=-1)
-            {
-              httpout.write(r);
-
+              }
+            } else{
+              System.out.println("404");
+              httpwriter.println("HTTP/1.0 404 File not found");
+              httpwriter.flush();
             }
           }
           if (URI.equals("/uhrzeit")) {
@@ -165,9 +187,11 @@ extends Thread
       } catch (NoSuchElementException e) {
         // keine Tokens (z.B. URI) im Request
         httpwriter.println ("HTTP/1.0 400 Bad Request");
+        httpwriter.flush();
         out.println ("Bad Request");
       } catch (IOException e) {
         httpwriter.println ("HTTP/1.0 500 Internal Server Error");
+        httpwriter.flush();
         out.println ("I/O error " + e);
       }
 

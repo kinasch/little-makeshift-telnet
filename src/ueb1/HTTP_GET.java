@@ -17,17 +17,17 @@ public class HTTP_GET {
         String host = cutter(args[0]);
         try  {
             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-            Socket clientSocket = new Socket(host, 80);
+            Socket clientSocket = new Socket(host, 5000);
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            out.print("GET / HTTP/1.0"+"\r\n");
-            out.print("Host: "+host+"\r\n");
-            System.out.println("GET / HTTP/1.0");
-            System.out.println("Host: "+host);
-
+            out.print("GET /index.html HTTP/1.0"+"\r\n");
+            //out.print("Host: "+host+"\r\n");
+            System.out.println("GET /index.html HTTP/1.0");
+            //System.out.println("Host: "+host);
             out.print("\r\n");
             out.flush();
+
             String answer;
             while((answer = in.readLine())!=null){
                 System.out.println(answer);
