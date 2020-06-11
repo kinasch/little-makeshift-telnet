@@ -136,7 +136,7 @@ extends Thread
             // deshalb vorher flush erforderlich)
 
             //ein Fileleser
-            FileInputStream fileIn=new FileInputStream("index.html");
+            FileInputStream fileIn=new FileInputStream(URI);
             int r;
             while((r=fileIn.read())!=-1)
             {
